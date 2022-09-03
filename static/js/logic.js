@@ -1,32 +1,4 @@
-// Create the map object with center at the San Francisco airport.
-// Create the map object with center and zoom level.
-// let map = L.map('mapid').setView([30, 30], 2);
-// let airportData = "https://raw.githubusercontent.com/SavannahPosner/Mapping_Earthquakes/main/static/js/majorAirports.json";
 
-
-//  // Add GeoJSON data.
-//  let sanFranAirport =
-//  {"type":"FeatureCollection","features":[{
-//      "type":"Feature",
-//      "properties":{
-//          "id":"3469",
-//          "name":"San Francisco International Airport",
-//          "city":"San Francisco",
-//          "country":"United States",
-//          "faa":"SFO",
-//          "icao":"KSFO",
-//          "alt":"13",
-//          "tz-offset":"-8",
-//          "dst":"A",
-//          "tz":"America/Los_Angeles"},
-//          "geometry":{
-//              "type":"Point",
-//              "coordinates":[-122.375,37.61899948120117]}}
-//  ]};
- 
-//  L.geoJSON(sanFranAirport).addTo(map);
-
-// We create the tile layer that will be the background of our map.
 // We create the tile layer that will be the background of our map.
 let streets = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token={accessToken}', {
 attribution: 'Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery (c) <a href="https://www.mapbox.com/">Mapbox</a>',
@@ -40,6 +12,15 @@ attribution: 'Map data © <a href="https://www.openstreetmap.org/">OpenStreetMap
     maxZoom: 18,
     accessToken: API_KEY
 });
+
+// Create the earthquake layer for our map.
+let earthquakes = new L.layerGroup();
+
+// We define an object that contains the overlays.
+// This overlay will be visible all the time.
+let overlays = {
+  Earthquakes: earthquakes
+};
 
 // Create a base layer that holds both maps.
 let baseMaps = {
@@ -60,110 +41,109 @@ let map = L.map('mapid', {
 // Retrieve the earthquake GeoJSON data.
 d3.json("https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_week.geojson").then(function(data) {
   // Creating a GeoJSON layer with the retrieved data.
-  L.geoJSON(data, {
-
-    // We turn each feature into a circleMarker on the map.
-    
-    pointToLayer: function(feature, latlng) {
-                console.log(data);
-                return L.circleMarker(latlng);
-            },
-            style:styleInfo
-        }).addTo(map);
-
+  // Creating a GeoJSON layer with the retrieved data.
+    L.geoJSON(data, {
+      // We turn each feature into a circleMarker on the map.
+      pointToLayer: function(feature, latlng) {
+          console.log(data);
+          return L.circleMarker(latlng);
+        },
+      // We set the style for each circleMarker using our styleInfo function.
+    style: styleInfo,
+      // We create a popup for each circleMarker to display the magnitude and
+      //  location of the earthquake after the marker has been created and styled.
+      onEachFeature: function(feature, layer) {
+      layer.bindPopup("Magnitude: " + feature.properties.mag + "<br>Location: " + feature.properties.place);
+    }
+    }).addTo(earthquakes);
+      
 
         // This function returns the style data for each of the earthquakes we plot on
 // the map. We pass the magnitude of the earthquake into a function
 // to calculate the radius.
-      function styleInfo(feature) {
-        return {
-          opacity: 1,
-          fillOpacity: 1,
-          fillColor: "#ffae42",
-          color: "#000000",
-          radius: getRadius(),
-          stroke: true,
-          weight: 0.5
-        };
-      }
+function styleInfo(feature) {
+  return {
+    opacity: 1,
+    fillOpacity: 1,
+    fillColor: getColor(feature.properties.mag),
+    color: "#000000",
+    radius: getRadius(feature.properties.mag),
+    stroke: true,
+    weight: 0.5
+  };
+}
+      // This function determines the color of the circle based on the magnitude of the earthquake.
+        function getColor(magnitude) {
+          if (magnitude > 5) {
+            return "#ea2c2c";
+          }
+          if (magnitude > 4) {
+            return "#ea822c";
+          }
+          if (magnitude > 3) {
+            return "#ee9c00";
+          }
+          if (magnitude > 2) {
+            return "#eecc00";
+          }
+          if (magnitude > 1) {
+            return "#d4ee00";
+          }
+          return "#98ee00";
+          }
 
       function getRadius(magnitude) {
         if (magnitude === 0) {
           return 1;
         }
-        console.log(magnitude*4);
-        // return magnitude * 4;
+        // console.log(magnitude*4);
+        return magnitude * 4;
   }
       // This function determines the radius of the earthquake marker based on its magnitude.
 // Earthquakes with a magnitude of 0 will be plotted with a radius of 1.
     
     });
 
-
-
-
-
-
 // Pass our map layers into our layers control and add the layers control to the map.
-L.control.layers(baseMaps).addTo(map);
+L.control.layers(baseMaps, overlays).addTo(map);
 // Change the map style to "satellite-streets-v11."
 
 // Then we add our 'graymap' tile layer to the map.
 streets.addTo(map);
 
 
-
-
-
-
-
-
-
-// let airportData = "https://raw.githubusercontent.com/SavannahPosner/Mapping_Earthquakes/main/static/js/majorAirports.json";
-
-
-// // Grabbing our GeoJSON data.
-// d3.json(airportData).then(function(data) {
-//   console.log(data);
-// // Creating a GeoJSON layer with the retrieved data.
-// L.geoJSON(data).addTo(map);
-// });
-
-
-let torontoData = 'https://raw.githubusercontent.com/SavannahPosner/Mapping_Earthquakes/main/static/js/torontoRoutes.json';
-let myStyle = {
-  color: "#ffffa1",
-  weight: 2
-}
-
-let torontoHoods = "https://raw.githubusercontent.com/SavannahPosner/Mapping_Earthquakes/main/static/js/torontoNeighborhoods.json";
-d3.json(torontoHoods).then(function(data) {
-  console.log(data);
-// Creating a GeoJSON layer with the retrieved data.
-L.geoJSON(data).addTo(map);
+let legend = L.control({
+  position: "bottomright"
 });
 
-// var marker = L.circleMarker([34.0522, -118.2437], {
-//     radius: 100,
-//     color:'black',
-//     fillColor: '#ffffa1'
-// }).addTo(map);
+// Then add all the details for the legend
+legend.onAdd = function() {
+  let div = L.DomUtil.create("div", "info legend");
+  const magnitudes = [0, 1, 2, 3, 4, 5];
+  const colors = [
+    "#98ee00",
+    "#d4ee00",
+    "#eecc00",
+    "#ee9c00",
+    "#ea822c",
+    "#ea2c2c"
+  ];
 
-// Coordinates for each point to be used in the line.
-// let line = [
-//     [33.9416, -118.4085],
-//     [37.6213, -122.3790],
-//     [40.7899, -111.9791],
-//     [47.4502, -122.3088]
-//   ];
+// Looping through our intervals to generate a label with a colored square for each interval.
+  for (var i = 0; i < magnitudes.length; i++) {
+    console.log(colors[i]);
+    div.innerHTML +=
+      "<i style='background: " + colors[i] + "'></i> " +
+      magnitudes[i] + (magnitudes[i + 1] ? "&ndash;" + magnitudes[i + 1] + "<br>" : "+");
+    }
+    return div;
+  };
 
-  // Create a polyline using the line coordinates and make the line red.
-// L.polyline(line, {
-//     color: "yellow"
-//   }).addTo(map)
+// Finally, we add our legend to the map.
+legend.addTo(map);
 
-//   L.geoJson(data, {
-//     pointToLayer: function(feature, latlng) {
-//       return L.marker(latlng);
-//      }
-// });
+
+
+
+
+
